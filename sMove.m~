@@ -1,0 +1,79 @@
+function sMove()
+
+disp('Starting now!');
+wb_differential_wheels_set_speed(6,6);
+wb_robot_step(64);
+pause(1);
+
+  sensorLeft = wb_distance_sensor_get_value(1);
+  sensor2 = wb_distance_sensor_get_value(2);
+  sensorFrontLeft = wb_distance_sensor_get_value(3);
+  sensorFrontRight = wb_distance_sensor_get_value(4);
+  sensor5 = wb_distance_sensor_get_value(5);
+  sensorRight = wb_distance_sensor_get_value(6);
+  sensor7 = wb_distance_sensor_get_value(7);
+  sensor8 = wb_distance_sensor_get_value(8);
+  
+while(sensorFrontLeft < 700 && sensorFrontRight < 700 && sensorLeft < 700)
+  	wb_differential_wheels_set_speed(3,3);
+  	wb_robot_step(64);
+end
+
+while 1 % while the world is active
+ %$ disp(sensor2);   
+  % get the values of all the range sensors     
+  sensorLeft = wb_distance_sensor_get_value(1);
+  sensorRight = wb_distance_sensor_get_value(6);
+  sensorFrontLeft = wb_distance_sensor_get_value(3);
+  sensorFrontRight = wb_distance_sensor_get_value(4);
+  
+%   sensor2 = wb_distance_sensor_get_value(2);
+%   sensor5 = wb_distance_sensor_get_value(5);
+%   sensor7 = wb_distance_sensor_get_value(7);
+%   sensor8 = wb_distance_sensor_get_value(8);
+
+  closeThreshold = 800;
+  farThreshold = 700;
+  
+  %disp(sensor2);  
+  % if there's nothing around you
+  if(sensorFrontLeft ==0 && sensorFrontRight == 0 && sensorLeft < 600 && sensorLeft > 400)
+  	wb_differential_wheels_set_speed(3,3);
+  	wb_robot_step(64);
+    disp('forward');
+    following = 1; 
+ elseif(sensorFrontLeft ==0 && sensorFrontRight == 0 && sensorLeft ==0)
+     wb_differential_wheels_set_speed(6,6);
+  	wb_robot_step(64);
+     disp('quick forward');
+     following = 0;
+  elseif(sensorFrontLeft ==0 && sensorFrontRight == 0 && sensorLeft < 400)
+     wb_differential_wheels_set_speed(2,3);
+  	wb_robot_step(64);
+     disp('left forward');
+     following = 1;
+  elseif(sensorFrontLeft ==0 && sensorFrontRight == 0 && sensorLeft > 600 && sensorLeft<800)
+     wb_differential_wheels_set_speed(3,2);
+  	wb_robot_step(64);
+     disp('right forward');
+     following = 1;
+  elseif(sensorFrontLeft ==0 && sensorFrontRight == 0 &&  sensorLeft>800)
+     wb_differential_wheels_set_speed(2,-2);
+  	wb_robot_step(64);
+     disp('right quick ');
+      pause(.5);
+     wb_differential_wheels_set_speed(3,2);
+     following = 1;
+  elseif(sensorFrontLeft ~= 0 || sensorFrontRight ~= 0)
+    wb_differential_wheels_set_speed(-3,-3);
+  	wb_robot_step(64);
+    pause(1);   
+    wb_differential_wheels_set_speed(1,-1);
+  	wb_robot_step(64);
+    pause(.3);
+    disp('spin round');
+    following = 0;
+  end
+  pause(1);
+end
+ 
