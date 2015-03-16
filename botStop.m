@@ -1,3 +1,4 @@
+%%simple function just to stop to bot
 function botStop()
 
 disp('Stopping!');
