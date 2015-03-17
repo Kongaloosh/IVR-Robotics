@@ -23,19 +23,19 @@ close = 500;
 normSpd = 3;
 reverseNormSpd = -3;
   
-%Just starting off, if not sensing anything, floor it
-while(sensorStartLeftBack + sensorStartRightBack + sensorStartFrontLeft + sensorStartFrontRight < 50)
-    disp('Moving forward');
-   	wb_differential_wheels_set_speed(normSpd+5,normSpd+5);
-  	wb_robot_step(64);
-    sensorStartLeftBack = wb_distance_sensor_get_value(1);
-    sensorStartFrontLeft = wb_distance_sensor_get_value(3);
-    sensorStartFrontRight = wb_distance_sensor_get_value(4);
-    sensorStartRightBack = wb_distance_sensor_get_value(6);
-    
-end
-
-disp('Leaving first while loop');
+% %Just starting off, if not sensing anything, floor it
+% while(sensorStartLeftBack + sensorStartRightBack + sensorStartFrontLeft + sensorStartFrontRight < 50)
+%     disp('Moving forward');
+%    	wb_differential_wheels_set_speed(normSpd+5,normSpd+5);
+%   	wb_robot_step(64);
+%     sensorStartLeftBack = wb_distance_sensor_get_value(1);
+%     sensorStartFrontLeft = wb_distance_sensor_get_value(3);
+%     sensorStartFrontRight = wb_distance_sensor_get_value(4);
+%     sensorStartRightBack = wb_distance_sensor_get_value(6);
+%     wb_robot_step(64);
+% end
+% 
+% disp('Leaving first while loop');
 
 while 1 %bot has approached something. while world is active, keep looping
  
@@ -68,14 +68,17 @@ while 1 %bot has approached something. while world is active, keep looping
          && sensorLeftBack == noDetection && sensorRightBack == noDetection)
     if(followFlag == 1)
         disp('Huh? Was just following something, now its gone!')  
-        wb_differential_wheels_set_speed(-3,3);
+        wb_differential_wheels_set_speed(reverseNormSpd,normSpd);
         wb_robot_step(64);
         pause(.5)
         followFlag = 0;
     else
         disp('Moving forward');
+        disp(sensorFrontLeft);
+        disp(sensorFrontRight);
         wb_differential_wheels_set_speed(normSpd, normSpd);
         wb_robot_step(64);
+        
         followFlag = 0;
      end
 
@@ -108,22 +111,19 @@ while 1 %bot has approached something. while world is active, keep looping
     disp('spin round');
     followFlag = 1;
   
-  %something is in front of both sensors, so back up and turn 
-  %currently same actions as previous elseif statement
+  %something is in front of both sensors, 
+  %or something close to side/front, so turn sharply
   elseif(sensorFrontLeft > tooClose || sensorFrontRight > tooClose ...
-          || sensorLeftForward > close || sensorRightForward > close)
+          || sensorLeftForward > tooClose || sensorRightForward > tooClose)
     wb_differential_wheels_set_speed(normSpd, reverseNormSpd);
   	wb_robot_step(64);
     pause(.3);
-    disp('back then spin round');
+    disp('spin round');
     followFlag = 1;
   else disp ('DANGER WILL ROBINSON!');  %%in a situation not accounted for
         disp(wb_distance_sensor_get_value(4))
   end
   
-  
-
-
 
 end
  
