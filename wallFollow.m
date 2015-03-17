@@ -11,6 +11,7 @@ sensorStartFrontRight = wb_distance_sensor_get_value(4);
   
 
 followFlag = 0; 
+errorFlag = 0;
 
 %define thresholds for bot use
 tooClose =  800;  
@@ -22,24 +23,12 @@ close = 500;
 %define default speed
 normSpd = 3;
 reverseNormSpd = -3;
-  
-% %Just starting off, if not sensing anything, floor it
-% while(sensorStartLeftBack + sensorStartRightBack + sensorStartFrontLeft + sensorStartFrontRight < 50)
-%     disp('Moving forward');
-%    	wb_differential_wheels_set_speed(normSpd+5,normSpd+5);
-%   	wb_robot_step(64);
-%     sensorStartLeftBack = wb_distance_sensor_get_value(1);
-%     sensorStartFrontLeft = wb_distance_sensor_get_value(3);
-%     sensorStartFrontRight = wb_distance_sensor_get_value(4);
-%     sensorStartRightBack = wb_distance_sensor_get_value(6);
-%     wb_robot_step(64);
-% end
-% 
-% disp('Leaving first while loop');
+
 
 while 1 %bot has approached something. while world is active, keep looping
  
-  % get the values of all the range sensors     
+  % get the values of all the range sensors    
+  % get speed values from both wheels
   sensorLeftBack = wb_distance_sensor_get_value(1);
   sensorLeftForward = wb_distance_sensor_get_value(2);
   sensorFrontLeft = wb_distance_sensor_get_value(3);
@@ -48,9 +37,25 @@ while 1 %bot has approached something. while world is active, keep looping
   sensorRightBack = wb_distance_sensor_get_value(6);
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
+  leftWheelSpeed = wb_differential_wheels_get_left_speed();
+  rightWheelSpeed = wb_differential_wheels_get_right_speed(); 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   
-
+  if leftWheelSpeed == 0|| rightWheelSpeed == 0
+      errorFlag = errorFlag + 1;
+  end
+  
+  if errorFlag == 5
+     wb_differential_wheels_set_speed(reverseNormSpd,reverseNormSpd);
+  	wb_robot_step(64);
+    pause(.4);
+    wb_differential_wheels_set_speed(reverseNormSpd,normSpd);
+  	wb_robot_step(64);
+    pause(.4);
+    disp('must be stuck!');
+    errorFlag = 0;
+  end
+  
   
   %designed for wall following on the left
   % nothing in front & left side is within desired distance window
@@ -117,11 +122,11 @@ while 1 %bot has approached something. while world is active, keep looping
           || sensorLeftForward > tooClose || sensorRightForward > tooClose)
     wb_differential_wheels_set_speed(normSpd, reverseNormSpd);
   	wb_robot_step(64);
-    pause(.3);
+    pause(.2);
     disp('spin round');
     followFlag = 1;
   else disp ('DANGER WILL ROBINSON!');  %%in a situation not accounted for
-        disp(wb_distance_sensor_get_value(4))
+        disp(wb_distance_sensor_get_value(6))
   end
   
 
