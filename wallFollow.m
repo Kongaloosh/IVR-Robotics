@@ -2,14 +2,6 @@ function wallFollow()
 
 disp('Starting now!');
 
-%%Get an initial reading
-sensorStartLeftBack = wb_distance_sensor_get_value(1);
-sensorStartRightBack = wb_distance_sensor_get_value(6);
-sensorStartFrontLeft = wb_distance_sensor_get_value(3);
-sensorStartFrontRight = wb_distance_sensor_get_value(4);
-  
-  
-
 followFlag = 0; 
 errorFlag = 0;
 
@@ -24,7 +16,10 @@ close = 500;
 normSpd = 3;
 reverseNormSpd = -3;
 
-
+wb_gps_enable();
+x=0;
+y=0;
+x=0;
 while 1 %bot has approached something. while world is active, keep looping
  
   % get the values of all the range sensors    
@@ -37,13 +32,11 @@ while 1 %bot has approached something. while world is active, keep looping
   sensorRightBack = wb_distance_sensor_get_value(6);
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
-  leftWheelSpeed = wb_differential_wheels_get_left_speed();
-  rightWheelSpeed = wb_differential_wheels_get_right_speed(); 
+  [x y z] =  wb_gps_get_values();
+  disp(x);
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   
-  if leftWheelSpeed == 0|| rightWheelSpeed == 0
-      errorFlag = errorFlag + 1;
-  end
+
   
   if errorFlag == 5
      wb_differential_wheels_set_speed(reverseNormSpd,reverseNormSpd);
@@ -79,8 +72,6 @@ while 1 %bot has approached something. while world is active, keep looping
         followFlag = 0;
     else
         disp('Moving forward');
-        disp(sensorFrontLeft);
-        disp(sensorFrontRight);
         wb_differential_wheels_set_speed(normSpd, normSpd);
         wb_robot_step(64);
         
