@@ -16,10 +16,8 @@ close = 500;
 normSpd = 3;
 reverseNormSpd = -3;
 
-wb_gps_enable();
-x=0;
-y=0;
-x=0;
+wb_differential_wheels_set_speed(normSpd,normSpd);
+
 while 1 %bot has approached something. while world is active, keep looping
  
   % get the values of all the range sensors    
@@ -32,8 +30,7 @@ while 1 %bot has approached something. while world is active, keep looping
   sensorRightBack = wb_distance_sensor_get_value(6);
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
-  [x y z] =  wb_gps_get_values();
-  disp(x);
+
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   
 
