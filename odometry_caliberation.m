@@ -7,7 +7,7 @@ function [] = odometry_caliberation()
                    %facing north
     theta = angle_between_points(x_r,y_r,-4,-4)
     pause(1)
-    while(abs(theta-phi) > 0.1)
+    while(abs(theta-phi) > 0.05)
         wb_robot_step(64);
         disp(phi)
         wb_differential_wheels_set_speed(-1, 1);
