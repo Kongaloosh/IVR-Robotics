@@ -16,7 +16,8 @@ close = 500;
 normSpd = 3;
 reverseNormSpd = -3;
 
-wb_differential_wheels_set_speed(normSpd,normSpd);
+
+wb_differential_wheels_set_speed(normSpd, normSpd);
 
 while 1 %bot has approached something. while world is active, keep looping
  
@@ -33,7 +34,16 @@ while 1 %bot has approached something. while world is active, keep looping
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   
-
+  
+  disp(sensorLeftBack);
+   disp(sensorLeftForward);
+   disp(sensorFrontLeft);
+    disp(sensorFrontRight);
+     disp(sensorRightForward);
+      disp(sensorRightBack);
+       disp(sensorBackRight);
+        disp(sensorBackLeft);
+  
   
   if errorFlag == 5
      wb_differential_wheels_set_speed(reverseNormSpd,reverseNormSpd);
