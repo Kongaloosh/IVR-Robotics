@@ -24,10 +24,6 @@ end
 gps = wb_robot_get_device('gps');
 wb_gps_enable(gps,TIME_STEP);
 
-% Enabling Compass
-compass = wb_robot_get_device('compass');
-wb_compass_enable(compass, TIME_STEP) 
-
 %enabling led
 led(1) = wb_robot_get_device('led0');
 led(2) = wb_robot_get_device('led1');

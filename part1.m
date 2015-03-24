@@ -3,7 +3,6 @@ disp('Starting now!');
 
 % Getting Nodes
 gps = wb_robot_get_device('gps');
-compass = wb_robot_get_device('compass');
 
 %Sampling time
 TIME_STEP = 32;
