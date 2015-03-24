@@ -29,8 +29,8 @@ xLastPosition = 0;
 yLastPosition = 0;
 
 %testing for encoders
-xEnc = 0;
-yEnc = 0;
+xEnc = 1;
+yEnc = 1;
 phiEnc = pi;
 
 vLeft = 1; 
@@ -43,6 +43,9 @@ end
 while(sensorTally<tooClose)
     wb_differential_wheels_set_speed(vLeft, vRight);
     [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
+    deltaLeft = wb_differential_wheels_get_left_encoder/680;
+    deltaRight = wb_differential_wheels_get_right_encoder/680;
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
     wb_robot_step(64); 
     sensorTally=0;
     for k=1:8
@@ -53,6 +56,8 @@ end
 xWall = x;
 yWall = y;
 phiWall=phi;
+xWallEnc = xEnc;
+yWallEnc = yEnc;
 
 
 for i = 1:500
@@ -69,7 +74,9 @@ for i = 1:500
   sensorBackLeft = wb_distance_sensor_get_value(8);
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
-  position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
+  disp(position);
+  position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
   disp(position);
   
   %%check position -> if x & y position are similar, increment errorFlag
@@ -170,8 +177,12 @@ for i = 1:500
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
+  deltaLeft = wb_differential_wheels_get_left_encoder/680;
+  deltaRight = wb_differential_wheels_get_right_encoder/680;
+  [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
 
 end
 
-test(x,y, phi, xWall, yWall);
+%test(x,y, phi, xWall, yWall);
+testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
 end

@@ -32,7 +32,7 @@ stopPosition = sprintf('xWall: %d; yWall: %d', xWall, yWall);
 vLeft = 1; 
 vRight = 1;
 
-while (floor(x)~=floor(xWall)) ||t
+while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
     %%
     % |MONOSPACED TEXT| (floor(y)~=floor(yWall))
    
@@ -149,7 +149,7 @@ while (floor(x)~=floor(xWall)) ||t
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
 end
 
 botStop;
