@@ -31,9 +31,10 @@ stopPosition = sprintf('xWall: %d; yWall: %d', xWall, yWall);
 
 vLeft = 1; 
 vRight = 1;
-wb_differential_wheels_set_speed(vLeft,vRight);
 
-while floor(x)~=floor(xWall)
+while (floor(x)~=floor(xWall)) ||t
+    %%
+    % |MONOSPACED TEXT| (floor(y)~=floor(yWall))
    
   % get the values of all the range sensors    
   % get speed values from both wheels
