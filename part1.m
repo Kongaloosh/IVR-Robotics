@@ -23,15 +23,33 @@ reverseMed = -2;
 %define x,y,&phi for odometry readings
 x = 0;
 y = 0;
-phi = 3.927*pi; 
+phi = pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
 vLeft = 1; 
 vRight = 1;
-wb_differential_wheels_set_speed(vLeft,vRight);
+sensorTally=0;
 
-for i=1:100
+for(k=1:8)
+   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+end
+while(sensorTally<tooClose)
+    wb_differential_wheels_set_speed(vLeft, vRight);
+    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
+    wb_robot_step(64); 
+    sensorTally=0;
+    for k=1:8
+       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+    end
+end
+
+xWall = x;
+yWall = y;
+phiWall=phi;
+
+
+for i = 1:500
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -126,7 +144,7 @@ for i=1:100
    %nothing in front, but left wall is too close
    %turn slightly
    elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-              &&  sensorLeftBack > tooClose)
+              &&  sensorLeftBack > closer)
     vLeft = forwardMed;
     vRight = reverseMed;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
@@ -146,42 +164,8 @@ for i=1:100
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
-  i=i+1;
+
 end
 
-botStop;
-goHome(x,y,phi);
-end
-
-%%try to get to the proper y position, then x position
-function goHome(x,y,phi) 
-    disp('Time to go Home!!');
-    position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
-    disp(position);
-    if y<0 
-        disp('Must go up!')
-    elseif y==0
-            disp('No need to go up or down!')
-    else disp('Must go down!')
-    end
-    if x > 0
-        disp('Must go right!')
-    elseif x==0
-            disp('No need to go left or right!')
-    else disp('Must go left!')
-    end
-
-%     if y < 0 %%must go up, so change phi to 0
-%         while(phi<-1 || phi>1)
-%             wb_differential_wheels_set_speed(3, -3);
-%              wb_robot_step(64);
-%             [x,y,phi] = odometry(3, -3,x ,y , phi, -1);
-%         end
-%         botStop;
-%     end
-    
-    turn_to_face_point(x,y);
-    
-
-    
+test(x,y, phi, xWall, yWall);
 end
