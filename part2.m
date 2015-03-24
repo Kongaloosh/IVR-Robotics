@@ -1,9 +1,8 @@
-function part1()
-TIME_STEP = 32;
+function [ ] = part2( )
 disp('Starting now!');
 
 gps = wb_robot_get_device('gps');
-wb_gps_enable(gps,TIME_STEP);
+wb_distance_sensor_enable(gps,TIME_STEP);
 
 following = 1;
 notFollowing = 0;
@@ -27,19 +26,12 @@ reverseMed = -2;
 x = 0;
 y = 0;
 phi = 3.927*pi; 
-
-xTrue = 0;
-yTrue = 0;
-zTrue = 0;
-
 xLastPosition = 0;
 yLastPosition = 0;
 
 vLeft = 1; 
 vRight = 1;
 wb_differential_wheels_set_speed(vLeft,vRight);
-
-EMA = 0;
 
 for i=1:100
    
@@ -53,15 +45,15 @@ for i=1:100
   sensorRightBack = wb_distance_sensor_get_value(6);
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
-  
-  ret = wb_gps_get_values(gps)  
-  xTrue = ret(1)
-  yTrue = ret(3)
-  
-  
+
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
+  
+  % we take the exponential moving average of all the values
+  EMA = (alpha * all) + (1.0 - alpha) * EMA
+
+  
   
   %%check position -> if x & y position are similar, increment errorFlag
   if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
@@ -185,18 +177,5 @@ function goHome(x,y,phi)
             disp('No need to go left or right!')
     else disp('Must go left!')
     end
-
-%     if y < 0 %%must go up, so change phi to 0
-%         while(phi<-1 || phi>1)
-%             wb_differential_wheels_set_speed(3, -3);
-%              wb_robot_step(64);
-%             [x,y,phi] = odometry(3, -3,x ,y , phi, -1);
-%         end
-%         botStop;
-%     end
-    
-    turn_to_face_point(x,y);
-    
-
-    
 end
+

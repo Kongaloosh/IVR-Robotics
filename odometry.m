@@ -1,4 +1,5 @@
 function[x,y,phi] = odometry(vleft, vright, x, y, phi, r)
+% if you want to have the distance, you must multiply the results by 2PIR
     if (r == 0)
         r = 4;
     end 
