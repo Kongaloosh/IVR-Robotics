@@ -27,12 +27,12 @@ phi = 3.927*pi;
 xLastPosition = 0;
 yLastPosition = 0;
 
-vLeft = 0; 
-vRight = 0;
+vLeft = 1; 
+vRight = 1;
 wb_differential_wheels_set_speed(vLeft,vRight);
 
-while 1 %bot has approached something. while world is active, keep looping
- 
+for i=1:100
+   
   % get the values of all the range sensors    
   % get speed values from both wheels
   sensorLeftBack = wb_distance_sensor_get_value(1);
@@ -47,7 +47,34 @@ while 1 %bot has approached something. while world is active, keep looping
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
-   
+  
+  %%check position -> if x & y position are similar, increment errorFlag
+  if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
+          (y < floor(y) + 3 && yLastPosition > floor(y)-3) 
+      errorFlag = errorFlag + 1;
+  else  %%position isn't similar, so update saved position and reset flag
+      xLastPosition = floor(x);
+      yLastPosition = floor(y);
+      errorFlag=0;
+  end
+
+  
+  if errorFlag > 50 %%position similar for too long - do something different
+      disp('The cake is a lie!');
+      errorFlag = 0;
+      vLeft = reverseNorm;
+      vRight = reverseNorm;
+      wb_differential_wheels_set_speed(vLeft, vRight);
+      wb_robot_step(64);
+      pause(1);
+      vLeft = forwardNorm;
+      vRight = reverseNorm;
+      wb_differential_wheels_set_speed(vLeft, vRight);
+      wb_robot_step(64);
+      pause(.5);
+      
+  end
+  
   %designed for wall following on the left
   % nothing in front & left side is within desired distance window
   if(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
@@ -62,15 +89,15 @@ while 1 %bot has approached something. while world is active, keep looping
   %nothing is detected all around, so go forward quickly
   elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
          && sensorLeftBack == noDetection && sensorRightBack == noDetection)
-    if(followFlag == 1)
+    if(followFlag == following)
         vLeft = reverseNorm;
         vRight = forwardNorm;
         controlInfo = sprintf ...
             ('Was just following something, now its gone! Turning! Left Wheel: %d Right Wheel: %d',...
             vLeft, vRight);
-        followFlag = notFollowing;
+        followFlag = following;
     else
-        vLeft = reverseNorm;
+        vLeft = forwardNorm;
         vRight = forwardNorm;
         controlInfo = sprintf ('Moving Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
         followFlag = notFollowing;
@@ -88,7 +115,7 @@ while 1 %bot has approached something. while world is active, keep looping
     
   %nothing in front, left wall is close but not too close 
   %starting to get closer than desired, so go forward and right
-  elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
+  elseif(sensorFrontLeft < far && sensorFrontRight < far ...
           && sensorLeftBack > close && sensorLeftBack<closer ...
           && sensorLeftForward <tooClose)
     vLeft = forwardNorm;
@@ -106,19 +133,55 @@ while 1 %bot has approached something. while world is active, keep looping
     followFlag = following;
   
   %something is in front of both sensors,   %or something close to side/front, so turn sharply
-  elseif(sensorFrontLeft > tooClose || sensorFrontRight > tooClose ...
+  elseif(sensorFrontLeft > close || sensorFrontRight > close ...
           || sensorLeftForward > close || sensorRightForward > close)
     vLeft = forwardNorm;
     vRight = reverseNorm;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
     followFlag = following;
-  else %%in a situation not accounted for. normally not a problem - bot just keeps moving forward
+  else %%in a situation not accounted for. normally not a problem - bot just doing what it was doing
       controlInfo = sprintf ('Just keep swimming!!'); 
   end
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
-
+  i=i+1;
 end
- 
+
+botStop;
+goHome(x,y,phi);
+end
+
+%%try to get to the proper y position, then x position
+function goHome(x,y,phi) 
+    disp('Time to go Home!!');
+    position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+    disp(position);
+    if y<0 
+        disp('Must go up!')
+    elseif y==0
+            disp('No need to go up or down!')
+    else disp('Must go down!')
+    end
+    if x > 0
+        disp('Must go right!')
+    elseif x==0
+            disp('No need to go left or right!')
+    else disp('Must go left!')
+    end
+
+%     if y < 0 %%must go up, so change phi to 0
+%         while(phi<-1 || phi>1)
+%             wb_differential_wheels_set_speed(3, -3);
+%              wb_robot_step(64);
+%             [x,y,phi] = odometry(3, -3,x ,y , phi, -1);
+%         end
+%         botStop;
+%     end
+    
+    turn_to_face_point(x,y);
+    
+
+    
+end
