@@ -1,10 +1,14 @@
 function part1()
-TIME_STEP = 32;
 disp('Starting now!');
 
+% Getting Nodes
 gps = wb_robot_get_device('gps');
-wb_gps_enable(gps,TIME_STEP);
+compass = wb_robot_get_device('compass');
 
+%Sampling time
+TIME_STEP = 32;
+
+% Actuation Flags
 following = 1;
 notFollowing = 0;
 followFlag = following; 
@@ -27,6 +31,7 @@ reverseMed = -2;
 x = 0;
 y = 0;
 
+% Defining the true values, as found by the GPS
 xTrue = 0;
 yTrue = 0;
 zTrue = 0;
@@ -75,9 +80,11 @@ for i=1:100
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
   
-  ret = wb_gps_get_values(gps)  
-  xTrue = ret(1)
-  yTrue = ret(3)
+  ret = wb_gps_get_values(gps);
+  xTrue = ret(1);
+  yTrue = ret(3);
+  
+  ret = wb_compass_get_values(compass)
   
   
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
