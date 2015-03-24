@@ -1,9 +1,6 @@
-function part1()
-TIME_STEP = 32;
-disp('Starting now!');
+function test(xStart, yStart, phiStart, xWall, yWall)
 
-gps = wb_robot_get_device('gps');
-wb_gps_enable(gps,TIME_STEP);
+disp('Starting now!');
 
 following = 1;
 notFollowing = 0;
@@ -24,45 +21,20 @@ forwardMed = 2;
 reverseMed = -2;
 
 %define x,y,&phi for odometry readings
-x = 0;
-y = 0;
-
-xTrue = 0;
-yTrue = 0;
-zTrue = 0;
-
-phi = pi; 
-
+x = xStart;
+y = yStart;
+phi = phiStart; 
 xLastPosition = 0;
 yLastPosition = 0;
 
+stopPosition = sprintf('xWall: %d; yWall: %d', xWall, yWall);
+
 vLeft = 1; 
 vRight = 1;
-sensorTally=0;
 
-EMA = 0;
-
-for i=1:100
-    for(k=1:8)
-        sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-    end
-    
-    while(sensorTally<tooClose)
-        wb_differential_wheels_set_speed(vLeft, vRight);
-        [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
-        wb_robot_step(64); 
-        sensorTally=0;
-        for k=1:8
-           sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-        end
-    end
-
-    xWall = x;
-    yWall = y;
-    phiWall=phi;
-
-
-    for i = 1:500
+while (floor(x)~=floor(xWall)) ||t
+    %%
+    % |MONOSPACED TEXT| (floor(y)~=floor(yWall))
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -74,15 +46,11 @@ for i=1:100
   sensorRightBack = wb_distance_sensor_get_value(6);
   sensorBackRight = wb_distance_sensor_get_value(7);
   sensorBackLeft = wb_distance_sensor_get_value(8);
-  
-  ret = wb_gps_get_values(gps)  
-  xTrue = ret(1)
-  yTrue = ret(3)
-  
-  
+
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
+  disp(stopPosition);
   
   %%check position -> if x & y position are similar, increment errorFlag
   if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
@@ -182,8 +150,14 @@ for i=1:100
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
-
 end
 
-test(x,y, phi, xWall, yWall);
+botStop;
+position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+disp(position);
+position = sprintf('xWall: %d, yWall: %d',  x, y); 
+disp(position);
 end
+
+  
+
