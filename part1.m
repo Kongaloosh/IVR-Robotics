@@ -42,8 +42,8 @@ sensorTally=0; %%used for a sum of all distance sensor readings
 
 pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
-Kp = 1/100; %constant for porpotionality
-Kd = 0; %%for derivative control implementation
+Kp = 1/200; %constant for porpotionality
+Kd = 1/500; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
@@ -73,7 +73,7 @@ yWallEnc = yEnc;
 
 lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
 
-for i = 1:500  %%arbitrary wallFollowing end point
+while 1  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -127,13 +127,13 @@ for i = 1:500  %%arbitrary wallFollowing end point
   %designed for wall following on the left
   %nothing in front & left side is within desired distance window
   if(sensorFrontLeft < far && sensorFrontRight < far ...
-            && sensorLeftForward < tooClose && sensorRightForward < tooClose ...
+            && sensorLeftForward < close && sensorRightForward < close ...
             && sensorLeftBack > noDetection)
     vLeft = forwardNorm;
     vRight = forwardNorm + pdControlFunction;
     controlInfo = sprintf('Moving forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight); 
     followFlag = following;
-      
+    
   %nothing in front, left, and right
   %nothing is detected all around, so go forward quickly
   elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
@@ -154,7 +154,8 @@ for i = 1:500  %%arbitrary wallFollowing end point
   
   %something is in front of both sensors,   %or something close to side/front, so turn sharply
   elseif(sensorFrontLeft >= far || sensorFrontRight >=far ...
-          || sensorLeftForward > tooClose || sensorRightForward > tooClose)
+          || sensorLeftForward > close || sensorRightForward > tooClose ...
+          || sensorLeftBack >tooClose)
     vLeft = forwardNorm;
     vRight = reverseNorm;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
