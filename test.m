@@ -13,6 +13,8 @@ closer = 600;
 far = 400;
 noDetection = 0;
 close = 500;
+desiredDistance = 500;
+
 
 %define speeds
 forwardNorm = 3;
@@ -24,15 +26,23 @@ reverseMed = -2;
 x = xStart;
 y = yStart;
 phi = phiStart; 
-xLastPosition = 0;
-yLastPosition = 0;
 
-stopPosition = sprintf('xWall: %d; yWall: %d', xWall, yWall);
-
+%set initial velocity of left and right wheels to 1
 vLeft = 1; 
 vRight = 1;
+sensorTally=0; %%used for a sum of all distance sensor readings
 
-while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
+pidControl = pid(1/100); %%just use P for now
+distanceError = 0; 
+Kp = 1/200; %constant for porpotionality
+Kd = 1/400; %%for derivative control implementation
+distanceDelta = 0; %change in left back sensor readings
+pdControlFunction =0;
+
+lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
+
+while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
+        not (floor(y)>floor(yWall)-1 && floor(y)<floor(yWall)+1)  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -46,47 +56,25 @@ while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
   sensorBackLeft = wb_distance_sensor_get_value(8);
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
-  position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+  distanceError = desiredDistance - sensorLeftBack;
+  distanceDelta = lastSensorLeftBack - sensorLeftBack;
+  pdControlFunction = distanceError*Kp + distanceDelta*Kd; 
+  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
-  disp(stopPosition);
-  
-  %%check position -> if x & y position are similar, increment errorFlag
-  if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
-          (y < floor(y) + 3 && yLastPosition > floor(y)-3) 
-      errorFlag = errorFlag + 1;
-  else  %%position isn't similar, so update saved position and reset flag
-      xLastPosition = floor(x);
-      yLastPosition = floor(y);
-      errorFlag=0;
-  end
+  stopPos = sprintf('Stopping at => x: %d, y: %d', xWall, yWall); 
+  disp(stopPos);
 
   
-  if errorFlag > 50 %%position similar for too long - do something different
-      disp('The cake is a lie!');
-      errorFlag = 0;
-      vLeft = reverseNorm;
-      vRight = reverseNorm;
-      wb_differential_wheels_set_speed(vLeft, vRight);
-      wb_robot_step(64);
-      pause(1);
-      vLeft = forwardNorm;
-      vRight = reverseNorm;
-      wb_differential_wheels_set_speed(vLeft, vRight);
-      wb_robot_step(64);
-      pause(.5);
-      
-  end
-  
   %designed for wall following on the left
-  % nothing in front & left side is within desired distance window
-  if(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-          && sensorLeftBack < close && sensorLeftBack > far ...
-          && sensorLeftForward < tooClose && sensorRightForward < tooClose)
+  %nothing in front & left side is within desired distance window
+  if(sensorFrontLeft < far && sensorFrontRight < far ...
+            && sensorLeftForward < close && sensorRightForward < close ...
+            && sensorLeftBack > noDetection)
     vLeft = forwardNorm;
-    vRight = forwardNorm;
+    vRight = forwardNorm + pdControlFunction;
     controlInfo = sprintf('Moving forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight); 
     followFlag = following;
-      
+    
   %nothing in front, left, and right
   %nothing is detected all around, so go forward quickly
   elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
@@ -104,39 +92,11 @@ while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
         controlInfo = sprintf ('Moving Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
         followFlag = notFollowing;
      end
-
-  %nothing in front & left wall is sensed but too far away
-  %getting further away from wall than desired, so go forward and left
-  elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-          && sensorLeftBack < far && sensorLeftBack > noDetection ...
-          && sensorLeftForward < tooClose)
-    vLeft = forwardNorm-((far-sensorLeftBack)/100);
-    vRight = forwardNorm;
-    controlInfo = sprintf ('Moving Left & Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
-    followFlag = following;
-    
-  %nothing in front, left wall is close but not too close 
-  %starting to get closer than desired, so go forward and right
-  elseif(sensorFrontLeft < far && sensorFrontRight < far ...
-          && sensorLeftBack > close && sensorLeftBack<closer ...
-          && sensorLeftForward <tooClose)
-    vLeft = forwardNorm;
-    vRight = forwardNorm-1;
-    controlInfo = sprintf ('Moving Right & Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
-    followFlag = following;
-   
-   %nothing in front, but left wall is too close
-   %turn slightly
-   elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-              &&  sensorLeftBack > closer)
-    vLeft = forwardMed;
-    vRight = reverseMed;
-    controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
-    followFlag = following;
   
   %something is in front of both sensors,   %or something close to side/front, so turn sharply
-  elseif(sensorFrontLeft > close || sensorFrontRight > close ...
-          || sensorLeftForward > close || sensorRightForward > close)
+  elseif(sensorFrontLeft >= far || sensorFrontRight >=far ...
+          || sensorLeftForward > close || sensorRightForward > tooClose ...
+          || sensorLeftBack >tooClose)
     vLeft = forwardNorm;
     vRight = reverseNorm;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
@@ -147,15 +107,16 @@ while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
+   
+
 end
 
-botStop;
-position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
-disp(position);
-position = sprintf('xWall: %d, yWall: %d',  x, y); 
-disp(position);
+ disp('Found Somethin!')
+ position = sprintf('Odo => x: %d, y: %d, phi: %d', x, y,phi); 
+ disp(position);
+ stopPos = sprintf('Stopping at => x: %d, y: %d', xWall, yWall); 
+ disp(stopPos);
+ botStop;
+ 
 end
-
-  
-

@@ -33,16 +33,21 @@ yLastPosition = 0;
 %define x,y,&phi for encoder odometry readings
 xEnc = 1;
 yEnc = 1;
-phiEnc = pi;
+phiEnc = 0;
+oldLeft = 0;
+oldRight = 0;
+newLeft =0;
+newRight=0;
 
 %set initial velocity of left and right wheels to 1
 vLeft = 1; 
 vRight = 1;
 sensorTally=0; %%used for a sum of all distance sensor readings
 
+pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
 Kp = 1/200; %constant for porpotionality
-Kd = 1/500; %%for derivative control implementation
+Kd = 1/400; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
@@ -53,9 +58,11 @@ end
 while(sensorTally<tooClose)
     wb_differential_wheels_set_speed(vLeft, vRight);
     [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-    deltaLeft = wb_differential_wheels_get_left_encoder;
-    deltaRight = wb_differential_wheels_get_right_encoder;
-    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
     wb_robot_step(64); 
     sensorTally=0;
     for k=1:8
@@ -72,7 +79,7 @@ yWallEnc = yEnc;
 
 lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
 
-for i=1:500  %%arbitrary wallFollowing end point
+for i=1:400  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -94,34 +101,6 @@ for i=1:500  %%arbitrary wallFollowing end point
   position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
   disp(position);
   
-  %%check position -> if x & y position are similar, increment errorFlag
-  %need to convert this to use accelerometers
-  if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
-          (y < floor(y) + 3 && yLastPosition > floor(y)-3) 
-      errorFlag = errorFlag + 1;
-  else  %%position isn't similar, so update saved position and reset flag
-      xLastPosition = floor(x);
-      yLastPosition = floor(y);
-      errorFlag=0;
-  end
-
-  %%if position similar for too long - do something different,
-  %reset the error flag, back up, and turn, then start again
-%   if errorFlag > 50 
-%       disp('The cake is a lie!');
-%       errorFlag = 0; 
-%       vLeft = reverseNorm;
-%       vRight = reverseNorm;
-%       wb_differential_wheels_set_speed(vLeft, vRight);
-%       wb_robot_step(64);
-%       pause(1);
-%       vLeft = forwardNorm;
-%       vRight = reverseNorm;
-%       wb_differential_wheels_set_speed(vLeft, vRight);
-%       wb_robot_step(64);
-%       pause(.5);
-%       
-%   end
   
   %designed for wall following on the left
   %nothing in front & left side is within desired distance window
@@ -166,12 +145,15 @@ for i=1:500  %%arbitrary wallFollowing end point
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
-  deltaLeft = wb_differential_wheels_get_left_encoder;
-  deltaRight = wb_differential_wheels_get_right_encoder;
-  [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
+
 
 end
 
-%test(x,y, phi, xWall, yWall);
-testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
+test(x,y, phi, xWall, yWall);
+%testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
 end

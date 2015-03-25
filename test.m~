@@ -1,14 +1,12 @@
-function testEnc(xStart, yStart, phiStart, xWall, yWall)
-
+function test()
+wb_differential_wheels_enable_encoders(64);
+wb_differential_wheels_set_encoders(0,0);
 disp('Starting now!');
 
 following = 1;
 notFollowing = 0;
 followFlag = following; 
 errorFlag = 0;
-
-oldLeft=0;
-oldRight=0;
 
 %define thresholds for bot use
 tooClose =  800;  
@@ -26,29 +24,62 @@ forwardMed = 2;
 reverseMed = -2;
 
 %define x,y,&phi for odometry readings
-x = xStart;
-y = yStart;
-phi = phiStart; 
+x = 0;
+y = 0;
+phi = pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
+%define x,y,&phi for encoder odometry readings
+xEnc = 1;
+yEnc = 1;
+phiEnc = 0;
+oldLeft = 0;
+oldRight = 0;
+newLeft =0;
+newRight=0;
 
 %set initial velocity of left and right wheels to 1
 vLeft = 1; 
 vRight = 1;
 sensorTally=0; %%used for a sum of all distance sensor readings
 
+pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
 Kp = 1/200; %constant for porpotionality
 Kd = 1/400; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
+%just starting off, head straight on until the bot gets near an object
+for(k=1:8)
+   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+end
+while(sensorTally<tooClose)
+    wb_differential_wheels_set_speed(vLeft, vRight);
+    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
+    wb_robot_step(64); 
+    sensorTally=0;
+    for k=1:8
+       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+    end
+end
+
+%just found a wall or other object, mark this spot for later return 
+xWall = x;  
+yWall = y;
+phiWall=phi;
+xWallEnc = xEnc;
+yWallEnc = yEnc;
 
 lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
 
-while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
-        not (floor(y)>floor(yWall)-1 && floor(y)<floor(yWall)+1)  %%arbitrary wallFollowing end point
+for i=1:400  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -65,22 +96,11 @@ while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
   distanceError = desiredDistance - sensorLeftBack;
   distanceDelta = lastSensorLeftBack - sensorLeftBack;
   pdControlFunction = distanceError*Kp + distanceDelta*Kd; 
-  position = sprintf('Encoders => x: %d, y: %d, phi: %d', x, y,phi); 
+  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
-  stopPos = sprintf('Stopping at => x: %d, y: %d', xWall, yWall); 
-  disp(stopPos);
-
-  %%check position -> if x & y position are similar, increment errorFlag
-  %need to convert this to use accelerometers
-  if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
-          (y < floor(y) + 3 && yLastPosition > floor(y)-3) 
-      errorFlag = errorFlag + 1;
-  else  %%position isn't similar, so update saved position and reset flag
-      xLastPosition = floor(x);
-      yLastPosition = floor(y);
-      errorFlag=0;
-  end
-
+  position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
+  disp(position);
+  
   
   %designed for wall following on the left
   %nothing in front & left side is within desired distance window
@@ -124,20 +144,16 @@ while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  
-  newLeft = wb_differential_wheels_get_left_encoder;
-  newRight = wb_differential_wheels_get_right_encoder;
-  [x,y,phi] = encoderOdo(x,y,phi,newLeft-oldLeft, newRight-oldRight);
-  oldRight=newRight;
-  oldLeft=newLeft;
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
 
-  
 
 end
- disp('Found Somethin!')
- position = sprintf('Encoders => x: %d, y: %d, phi: %d', x, y,phi); 
- disp(position);
- stopPos = sprintf('Stopping at => x: %d, y: %d', xWall, yWall); 
- disp(stopPos);
- botStop;
+
+test(x,y, phi, xWall, yWall);
+%testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
 end
