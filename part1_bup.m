@@ -37,6 +37,8 @@ vLeft = 1;
 vRight = 1;
 sensorTally=0;
 
+pidControl = pid(1/100); %%just use P for now
+
 for(k=1:8)
    sensorTally = sensorTally+wb_distance_sensor_get_value(k);
 end
@@ -136,10 +138,10 @@ for i = 1:500
 
   %nothing in front & left wall is sensed but too far away
   %getting further away from wall than desired, so go forward and left
-  elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
+  elseif(sensorFrontLeft > far && sensorFrontRight > far ...
           && sensorLeftBack < far && sensorLeftBack > noDetection ...
           && sensorLeftForward < tooClose)
-    vLeft = forwardNorm-((far-sensorLeftBack)/100);
+    vLeft = forwardNorm-(close-sensorLeftBack)*1/100;
     vRight = forwardNorm;
     controlInfo = sprintf ('Moving Left & Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
     followFlag = following;
@@ -176,7 +178,7 @@ for i = 1:500
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
   deltaLeft = wb_differential_wheels_get_left_encoder/680;
   deltaRight = wb_differential_wheels_get_right_encoder/680;
   [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
