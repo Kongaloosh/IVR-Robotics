@@ -35,14 +35,14 @@ sensorTally=0; %%used for a sum of all distance sensor readings
 pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
 Kp = 1/200; %constant for porpotionality
-Kd = 1/400; %%for derivative control implementation
+Kd = 1/300; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
 lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
 
-while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
-        not (floor(y)>floor(yWall)-1 && floor(y)<floor(yWall)+1)  %%arbitrary wallFollowing end point
+while (not (floor(x)>floor(xWall)-10 && floor(x)<floor(xWall)+10)) ||...
+        not (floor(y)>floor(yWall)-10 && floor(y)<floor(yWall)+10)  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels

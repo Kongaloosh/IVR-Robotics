@@ -47,7 +47,7 @@ sensorTally=0; %%used for a sum of all distance sensor readings
 pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
 Kp = 1/200; %constant for porpotionality
-Kd = 1/400; %%for derivative control implementation
+Kd = 1/300; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
