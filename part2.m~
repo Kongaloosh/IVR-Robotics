@@ -1,6 +1,4 @@
-function part1_bup()
-wb_differential_wheels_enable_encoders(64);
-wb_differential_wheels_set_encoders(0,0);
+function [ ] = part2( )
 disp('Starting now!');
 
 following = 1;
@@ -24,38 +22,17 @@ reverseMed = -2;
 %define x,y,&phi for odometry readings
 x = 0;
 y = 0;
-phi = pi; 
+phi = 3.927*pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
-%testing for encoders
-xEnc = 0;
-yEnc = 0;
-phiEnc = pi;
-
 vLeft = 1; 
 vRight = 1;
-sensorTally=0;
-
-for(k=1:8)
-   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-end
-while(sensorTally<tooClose)
-    wb_differential_wheels_set_speed(vLeft, vRight);
-    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-    wb_robot_step(64); 
-    sensorTally=0;
-    for k=1:8
-       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-    end
-end
-
-xWall = x;
-yWall = y;
-phiWall=phi;
+wb_differential_wheels_set_speed(vLeft,vRight);
 
 
-for i = 1:500
+
+for i=1:100
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -71,6 +48,11 @@ for i = 1:500
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
+  
+  % we take the exponential moving average of all the values
+  EMA = (alpha * all) + (1.0 - alpha) * EMA
+
+  
   
   %%check position -> if x & y position are similar, increment errorFlag
   if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
@@ -150,7 +132,7 @@ for i = 1:500
    %nothing in front, but left wall is too close
    %turn slightly
    elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-              &&  sensorLeftBack > closer)
+              &&  sensorLeftBack > tooClose)
     vLeft = forwardMed;
     vRight = reverseMed;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
@@ -169,9 +151,30 @@ for i = 1:500
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
+  i=i+1;
 end
 
-test(x,y, phi, xWall, yWall);
+botStop;
+goHome(x,y,phi);
 end
+
+%%try to get to the proper y position, then x position
+function goHome(x,y,phi) 
+    disp('Time to go Home!!');
+    position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+    disp(position);
+    if y<0 
+        disp('Must go up!')
+    elseif y==0
+            disp('No need to go up or down!')
+    else disp('Must go down!')
+    end
+    if x > 0
+        disp('Must go right!')
+    elseif x==0
+            disp('No need to go left or right!')
+    else disp('Must go left!')
+    end
+end
+

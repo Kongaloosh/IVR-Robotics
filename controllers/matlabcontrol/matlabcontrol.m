@@ -21,8 +21,8 @@ for i=1:N
 end
 
 % Enabling GPS
-gps = wb_robot_get_device('gps');
-wb_gps_enable(gps,TIME_STEP);
+% gps = wb_robot_get_device('gps');
+% wb_gps_enable(gps,TIME_STEP);
 
 %enabling led
 led(1) = wb_robot_get_device('led0');

@@ -35,6 +35,10 @@ xTrue = 0;
 yTrue = 0;
 zTrue = 0;
 
+% Defining the error tracking values.
+xError = 0;
+yError = 0;
+
 phi = pi; 
 
 xLastPosition = 0;
@@ -46,10 +50,9 @@ sensorTally=0;
 
 EMA = 0;
 
-for i=1:100
-    for(k=1:8)
-        sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-    end
+for(k=1:8)
+    sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+end
     
     while(sensorTally<tooClose)
         wb_differential_wheels_set_speed(vLeft, vRight);
@@ -68,7 +71,7 @@ for i=1:100
 
     for i = 1:500
    
-  % get the values of all the range sensors    
+    % get the values of all the range sensors    
   % get speed values from both wheels
   sensorLeftBack = wb_distance_sensor_get_value(1);
   sensorLeftForward = wb_distance_sensor_get_value(2);
@@ -81,9 +84,11 @@ for i=1:100
   
   ret = wb_gps_get_values(gps);
   xTrue = ret(1);
+  % z is what we actually percieve to be y
   yTrue = ret(3);
   
-  ret = wb_compass_get_values(compass)
+  xError = xTrue - x
+  yError = yTrue - y
   
   
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
