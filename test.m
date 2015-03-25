@@ -33,8 +33,6 @@ vLeft = 1;
 vRight = 1;
 
 while (floor(x)~=floor(xWall)) ||(floor(y)~=floor(yWall))
-    %%
-    % |MONOSPACED TEXT| (floor(y)~=floor(yWall))
    
   % get the values of all the range sensors    
   % get speed values from both wheels
