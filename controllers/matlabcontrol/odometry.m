@@ -5,7 +5,7 @@ function[x,y,phi] = odometry(vleft, vright, x, y, phi, r)
     end 
 %φ ← φ + Δφ = φ - 0.5*(vleft - vright)/(2R)
     %φ ← φ + Δφ = φ
-    phi = phi + 0.5 * (vleft - vright) / (r);
+    phi = phi + (vleft - vright) / (r);
     phi = mod(phi, (2*pi));
     
 % x ← x + Δx =x + 0.5*(vleft + vright) cos(φ)

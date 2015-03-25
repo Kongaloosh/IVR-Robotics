@@ -47,9 +47,13 @@ forwardMed = 2;
 reverseMed = -2;
 
 %define x,y,&phi for odometry readings
-x = 0;
-y = 0;
-phi = pi; 
+x = -0.231741;
+y = -0.214452;
+
+xStart = x;
+yStart = y;
+
+phi = 2 * pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
@@ -101,7 +105,7 @@ phiWall=phi;
 xWallEnc = xEnc;
 yWallEnc = yEnc;
 
-lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
+lastSensorLeftBack = wb_distance_sensor_get_value(ps(1)); %%start reading for sensorLeftBack
 
 while(1)  %%arbitrary wallFollowing end point
   
@@ -123,8 +127,7 @@ while(1)  %%arbitrary wallFollowing end point
     green = (g - r/2 -b/2);
 
     % get the avg value of a pixel
-    disp('avg green')
-    avg_green = sum(sum(green))/(width*height)
+    avg_green = sum(sum(green))/(width*height);
 
     % if there are abnormal values
     if avg_green > 10
@@ -204,6 +207,8 @@ while(1)  %%arbitrary wallFollowing end point
     [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
     oldLeft = newLeft;
     oldRight = newRight;
-
+   abs(x-xStart)
+   abs(y-yStart)
+   sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
 
 end
