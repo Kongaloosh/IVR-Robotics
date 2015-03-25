@@ -80,7 +80,36 @@ yWallEnc = yEnc;
 lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
 
 for i=1:400  %%arbitrary wallFollowing end point
-   
+  
+    
+    % ======================================================================
+    %                           Check for intruders
+    % ======================================================================
+
+    img = wb_camera_get_image(camera);
+    width = wb_camera_get_width(camera);
+    height = wb_camera_get_height(camera);
+
+    % get the image vals for each channel
+    r = img(:,:,1);
+    g = img(:,:,2);
+    b = img(:,:,3);
+
+    % get the green and remove white spots
+    green = (g - r/2 -b/2);
+
+    % get the avg value of a pixel
+    disp('avg green')
+    avg_green = sum(sum(green))/(width*height)
+
+    % if there are abnormal values
+    if avg_green > 4
+       disp('DETECTED') 
+    end
+    % ======================================================================
+    %                           End Intruder Check
+    % ======================================================================   
+    
   % get the values of all the range sensors    
   % get speed values from both wheels
   sensorLeftBack = wb_distance_sensor_get_value(1);
