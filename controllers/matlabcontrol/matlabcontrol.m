@@ -1,48 +1,236 @@
-% Very simple MATLAB controller for Webots
-% File: matlabcontrol.m
-% Date: 21/09/2011          
-% Description: This controller will open MATLAB and let you input
-%              commands from the keyboard
-% Author: Simon Smith (artificialsimon@ed.ac.uk)        
-% Modifications: 
-% Use: command to set motor speed 1 to left motor, -1 to right motor
-%       wb_differential_wheels_set_speed(1, -1)
-% After sending a setting command, the controller have to resume by
-% sending "return" in the keyboard input
-% This will allow a sensor value update as well
+% ======================================================================
+%                               SETUP 
+% ======================================================================
 
-TIME_STEP = 64;
+TIME_STEP = 64; % rate at which we get new drops from the sensors
 N = 8;
+TIMER = 0;
 
-% get and enable distance sensors
+% get and enable distance sensors 
 for i=1:N
   ps(i) = wb_robot_get_device(['ds' int2str(i-1)]);
   wb_distance_sensor_enable(ps(i),TIME_STEP);
 end
 
-% Enabling GPS
-gps = wb_robot_get_device('gps');
-wb_gps_enable(gps,TIME_STEP);
+% get and enable the camera
+camera = wb_robot_get_device('camera');
+wb_camera_enable(camera, TIME_STEP);
+camera_width = wb_camera_get_width(camera);
+camera_height = wb_camera_get_height(camera);
 
-%enabling led
-led(1) = wb_robot_get_device('led0');
-led(2) = wb_robot_get_device('led1');
+% get and enable encoders
+wb_differential_wheels_enable_encoders(64);
+wb_differential_wheels_set_encoders(0,0);
 
-% Calling MATLAB desktop versionwb_differential_wheels_set_speed(1, -1);
-desktop;
+% ======================================================================
+%                           CONTROL LOOP
+% ======================================================================
+disp('Starting now!');
 
-% main loop:
-% perform simulation steps of TIME_STEP milliseconds
-% and leave the controll to the keyboard
-while wb_robot_step(TIME_STEP) ~= -1
+following = 1;
+notFollowing = 0;
+followFlag = following; 
+errorFlag = 0;
 
-  % read all distance sensors
-       for i=1:N
-           sensor_values(i) = wb_distance_sensor_get_value(ps(i));
-       end
-  % display all distance sensors values
-       sensor_values
+%define thresholds for bot use
+tooClose =  800;  
+closer = 600;
+far = 400;
+noDetection = 0;
+close = 500;
+desiredDistance = 500;
+
+
+%define speeds
+forwardNorm = 3;
+reverseNorm = -3;
+forwardMed = 2;
+reverseMed = -2;
+
+%define x,y,&phi for odometry readings
+x = -0.231741;
+y = -0.214452;
+
+xStart = x;
+yStart = y;
+
+phi = 2 * pi; 
+xLastPosition = 0;
+yLastPosition = 0;
+
+%define x,y,&phi for encoder odometry readings
+xEnc = -0.231741;
+yEnc = -0.214452;
+
+phiEnc = 2*pi;
+
+oldLeft =0;
+oldRight = 0;
+newLeft =0;
+newRight=0;
+
+%set initial velocity of left and right wheels to 1
+vLeft = 1; 
+vRight = 1;
+sensorTally=0; %%used for a sum of all distance sensor readings
+
+pidControl = pid(1/100); %%just use P for now
+distanceError = 0; 
+Kp = 1/200; %constant for porpotionality
+Kd = 1/300; %%for derivative control implementation
+distanceDelta = 0; %change in left back sensor readings
+pdControlFunction =0;
+
+%just starting off, head straight on until the bot gets near an object
+for(k=1:8)
+   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+end
+
+while(sensorTally<tooClose)
+    wb_differential_wheels_set_speed(vLeft, vRight);
+    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
+    wb_robot_step(64); 
+    sensorTally=0;
+    for k=1:8
+       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+    end
+end
+
+%just found a wall or other object, mark this spot for later return 
+xWall = x;  
+yWall = y;
+phiWall=phi;
+xWallEnc = xEnc;
+yWallEnc = yEnc;
+
+lastSensorLeftBack = wb_distance_sensor_get_value(ps(1)); %%start reading for sensorLeftBack
+
+while(1)  %%arbitrary wallFollowing end point
   
-  % control goes to the keyboard
-    keyboard;
+    
+    % ======================================================================
+    %                           Check for intruders
+    % ======================================================================
+
+    img = wb_camera_get_image(camera);
+    width = wb_camera_get_width(camera);
+    height = wb_camera_get_height(camera);
+
+    % get the image vals for each channel
+    r = img(:,:,1);
+    g = img(:,:,2);
+    b = img(:,:,3);
+
+    % get the green and remove white spots
+    green = (g - r/2 -b/2);
+
+    % get the avg value of a pixel
+    avg_green = sum(sum(green))/(width*height);
+
+    % if there are abnormal values
+    if avg_green > 10
+       disp('DETECTED')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
+       break
+    end
+    % ======================================================================
+    %                           End Intruder Check
+    % ======================================================================   
+    
+  % get the values of all the range sensors    
+  % get speed values from both wheels
+  sensorLeftBack = wb_distance_sensor_get_value(ps(1));
+  sensorLeftForward = wb_distance_sensor_get_value(ps(2));
+  sensorFrontLeft = wb_distance_sensor_get_value(ps(3));
+  sensorFrontRight = wb_distance_sensor_get_value(ps(4));
+  sensorRightForward = wb_distance_sensor_get_value(ps(5));
+  sensorRightBack = wb_distance_sensor_get_value(ps(6));
+  sensorBackRight = wb_distance_sensor_get_value(ps(7));
+  sensorBackLeft = wb_distance_sensor_get_value(ps(8));
+
+  wb_robot_step(64); %%needed here or the sensors won't read correctly!
+  distanceError = desiredDistance - sensorLeftBack;
+  distanceDelta = lastSensorLeftBack - sensorLeftBack;
+  pdControlFunction = distanceError*Kp + distanceDelta*Kd; 
+  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
+  disp(position);
+  position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
+  disp(position);
+  
+  
+  %designed for wall following on the left
+  %nothing in front & left side is within desired distance window
+  if(sensorFrontLeft < far && sensorFrontRight < far ...
+            && sensorLeftForward < close && sensorRightForward < close ...
+            && sensorLeftBack > noDetection)
+    vLeft = forwardNorm;
+    vRight = forwardNorm + pdControlFunction;
+    controlInfo = sprintf('Moving forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight); 
+    followFlag = following;
+    
+  %nothing in front, left, and right
+  %nothing is detected all around, so go forward quickly
+  elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
+         && sensorLeftBack == noDetection && sensorRightBack == noDetection)
+    if(followFlag == following)
+        vLeft = reverseNorm;
+        vRight = forwardNorm;
+        controlInfo = sprintf ...
+            ('Was just following something, now its gone! Turning! Left Wheel: %d Right Wheel: %d',...
+            vLeft, vRight);
+        followFlag = following;
+    else
+        vLeft = forwardNorm;
+        vRight = forwardNorm;
+        controlInfo = sprintf ('Moving Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
+        followFlag = notFollowing;
+     end
+  
+  %something is in front of both sensors,   %or something close to side/front, so turn sharply
+  elseif(sensorFrontLeft >= far || sensorFrontRight >=far ...
+          || sensorLeftForward > close || sensorRightForward > tooClose ...
+          || sensorLeftBack >tooClose)
+    vLeft = forwardNorm;
+    vRight = reverseNorm;
+    controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
+    followFlag = following;
+  else %%in a situation not accounted for. normally not a problem - bot just doing what it was doing
+      controlInfo = sprintf ('Just keep swimming!!'); 
+  end
+  
+  disp(controlInfo);
+  wb_differential_wheels_set_speed(vLeft, vRight);
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
+  
+%   x = x * pi * 0.008
+%   y = y * pi * 0.008
+  
+  newLeft = wb_differential_wheels_get_left_encoder;
+  newRight = wb_differential_wheels_get_right_encoder;
+  [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+  oldLeft = newLeft;
+  oldRight = newRight;
+  
+  TIMER = TIMER +1;
+  
+  if (abs(xStart - xEnc) < 0.1 && abs(yStart - yEnc) < 0.1 && TIMER > 50)
+       disp('HOME')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
+       break
+  end
+  
+  x_error_o = abs(x-xStart);
+  y_error_o = abs(y-yStart);
+  x_error_e = abs(xEnc-xStart)
+  y_error_e = abs(yEnc-yStart)
+  
+  sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
+
 end

@@ -1,6 +1,30 @@
-function part1()
+% ======================================================================
+%                               SETUP 
+% ======================================================================
+
+TIME_STEP = 64; % rate at which we get new drops from the sensors
+N = 8;
+TIMER = 0;
+
+% get and enable distance sensors 
+for i=1:N
+  ps(i) = wb_robot_get_device(['ds' int2str(i-1)]);
+  wb_distance_sensor_enable(ps(i),TIME_STEP);
+end
+
+% get and enable the camera
+camera = wb_robot_get_device('camera');
+wb_camera_enable(camera, TIME_STEP);
+camera_width = wb_camera_get_width(camera);
+camera_height = wb_camera_get_height(camera);
+
+% get and enable encoders
 wb_differential_wheels_enable_encoders(64);
 wb_differential_wheels_set_encoders(0,0);
+
+% ======================================================================
+%                           CONTROL LOOP
+% ======================================================================
 disp('Starting now!');
 
 following = 1;
@@ -24,17 +48,26 @@ forwardMed = 2;
 reverseMed = -2;
 
 %define x,y,&phi for odometry readings
-x = 0;
-y = 0;
+x = -0.231741;
+y = -0.214452;
 
-phi = pi; 
+xStart = x;
+yStart = y;
+
+phi = 2 * pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
 %define x,y,&phi for encoder odometry readings
-xEnc = 1;
-yEnc = 1;
-phiEnc = pi;
+xEnc = -0.231741;
+yEnc = -0.214452;
+
+phiEnc = 2*pi;
+
+oldLeft =0;
+oldRight = 0;
+newLeft =0;
+newRight=0;
 
 %set initial velocity of left and right wheels to 1
 vLeft = 1; 
@@ -44,7 +77,7 @@ sensorTally=0; %%used for a sum of all distance sensor readings
 pidControl = pid(1/100); %%just use P for now
 distanceError = 0; 
 Kp = 1/200; %constant for porpotionality
-Kd = 1/500; %%for derivative control implementation
+Kd = 1/300; %%for derivative control implementation
 distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
@@ -52,12 +85,15 @@ pdControlFunction =0;
 for(k=1:8)
    sensorTally = sensorTally+wb_distance_sensor_get_value(k);
 end
+
 while(sensorTally<tooClose)
     wb_differential_wheels_set_speed(vLeft, vRight);
-    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-    deltaLeft = wb_differential_wheels_get_left_encoder/680;
-    deltaRight = wb_differential_wheels_get_right_encoder/680;
-    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
+    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
+    newLeft = wb_differential_wheels_get_left_encoder;
+    newRight = wb_differential_wheels_get_right_encoder;
+    [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    oldLeft = newLeft;
+    oldRight = newRight;
     wb_robot_step(64); 
     sensorTally=0;
     for k=1:8
@@ -72,20 +108,51 @@ phiWall=phi;
 xWallEnc = xEnc;
 yWallEnc = yEnc;
 
-lastSensorLeftBack = wb_distance_sensor_get_value(1); %%start reading for sensorLeftBack
+lastSensorLeftBack = wb_distance_sensor_get_value(ps(1)); %%start reading for sensorLeftBack
 
-while 1  %%arbitrary wallFollowing end point
-   
-    % get the values of all the range sensors    
+while(1)  %%arbitrary wallFollowing end point
+  
+    
+    % ======================================================================
+    %                           Check for intruders
+    % ======================================================================
+
+    img = wb_camera_get_image(camera);
+    width = wb_camera_get_width(camera);
+    height = wb_camera_get_height(camera);
+
+    % get the image vals for each channel
+    r = img(:,:,1);
+    g = img(:,:,2);
+    b = img(:,:,3);
+
+    % get the green and remove white spots
+    green = (g - r/2 -b/2);
+
+    % get the avg value of a pixel
+    avg_green = sum(sum(green))/(width*height);
+
+    % if there are abnormal values
+    if avg_green > 10
+       disp('DETECTED')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
+       break
+    end
+    % ======================================================================
+    %                           End Intruder Check
+    % ======================================================================   
+    
+  % get the values of all the range sensors    
   % get speed values from both wheels
-  sensorLeftBack = wb_distance_sensor_get_value(1);
-  sensorLeftForward = wb_distance_sensor_get_value(2);
-  sensorFrontLeft = wb_distance_sensor_get_value(3);
-  sensorFrontRight = wb_distance_sensor_get_value(4);
-  sensorRightForward = wb_distance_sensor_get_value(5);
-  sensorRightBack = wb_distance_sensor_get_value(6);
-  sensorBackRight = wb_distance_sensor_get_value(7);
-  sensorBackLeft = wb_distance_sensor_get_value(8);
+  sensorLeftBack = wb_distance_sensor_get_value(ps(1));
+  sensorLeftForward = wb_distance_sensor_get_value(ps(2));
+  sensorFrontLeft = wb_distance_sensor_get_value(ps(3));
+  sensorFrontRight = wb_distance_sensor_get_value(ps(4));
+  sensorRightForward = wb_distance_sensor_get_value(ps(5));
+  sensorRightBack = wb_distance_sensor_get_value(ps(6));
+  sensorBackRight = wb_distance_sensor_get_value(ps(7));
+  sensorBackLeft = wb_distance_sensor_get_value(ps(8));
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   distanceError = desiredDistance - sensorLeftBack;
@@ -96,34 +163,6 @@ while 1  %%arbitrary wallFollowing end point
   position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
   disp(position);
   
-  %%check position -> if x & y position are similar, increment errorFlag
-  %need to convert this to use accelerometers
-  if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
-          (y < floor(y) + 3 && yLastPosition > floor(y)-3) 
-      errorFlag = errorFlag + 1;
-  else  %%position isn't similar, so update saved position and reset flag
-      xLastPosition = floor(x);
-      yLastPosition = floor(y);
-      errorFlag=0;
-  end
-
-  %%if position similar for too long - do something different,
-  %reset the error flag, back up, and turn, then start again
-%   if errorFlag > 50 
-%       disp('The cake is a lie!');
-%       errorFlag = 0; 
-%       vLeft = reverseNorm;
-%       vRight = reverseNorm;
-%       wb_differential_wheels_set_speed(vLeft, vRight);
-%       wb_robot_step(64);
-%       pause(1);
-%       vLeft = forwardNorm;
-%       vRight = reverseNorm;
-%       wb_differential_wheels_set_speed(vLeft, vRight);
-%       wb_robot_step(64);
-%       pause(.5);
-%       
-%   end
   
   %designed for wall following on the left
   %nothing in front & left side is within desired distance window
@@ -168,12 +207,29 @@ while 1  %%arbitrary wallFollowing end point
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
-  deltaLeft = wb_differential_wheels_get_left_encoder/680;
-  deltaRight = wb_differential_wheels_get_right_encoder/680;
-  [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
+  
+%   x = x * pi * 0.008
+%   y = y * pi * 0.008
+  
+  newLeft = wb_differential_wheels_get_left_encoder;
+  newRight = wb_differential_wheels_get_right_encoder;
+  [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+  oldLeft = newLeft;
+  oldRight = newRight;
+  
+  TIMER = TIMER +1;
+  ]if (abs(xStart - xEnc) < 0.002 && abs(yStart - yEnc) < 0.002)
+       disp('HOME')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
+       break
+  end
+  
+  x_error_o = abs(x-xStart);
+  y_error_o = abs(y-yStart);
+  x_error_e = abs(xEnc-xStart)
+  y_error_e = abs(yEnc-yStart)
+  
+  sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
 
-end
-
-%test(x,y, phi, xWall, yWall);
-testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
 end

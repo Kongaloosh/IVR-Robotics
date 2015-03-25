@@ -1,0 +1,30 @@
+function[x,y,phi] = odometry2(lastx, lasty, deltaencoderx, deltaencodery, phi)
+% if you want to have the distance, you must multiply the results by 2PIR
+
+r = 0.053;
+
+% calculate distance travelled, as percieved by encoders
+distancex = (deltaencoderx / 100) * r;
+distancey = (deltaencodery / 100) * r;
+
+% calculate avg distance travelled
+avgdistance = distancex+distancey/2
+
+% calcuate new x position
+newx = lastx + avgdistance * sin(phi)
+newy = lasty + avgdistance * sine(phi)
+
+
+
+% x ← x + Δx =x + 0.5*(vleft + vright) cos(φ)
+    % x ← x + Δx 
+    x = x + 0.5 * (vleft+vright) * cos(phi);
+    
+% y ← y + Δy =y + 0.5*(vleft + vright) sin(φ)
+    % y ← y + Δy =y 
+    y = y + 0.5 * (vleft + vright) * sin(phi);
+
+%φ ← φ + Δφ = φ - 0.5*(vleft - vright)/(2R)
+    %φ ← φ + Δφ = φ
+    phi = phi + (vleft - vright) / (r);
+end

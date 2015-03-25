@@ -1,6 +1,4 @@
-function part1_bup()
-wb_differential_wheels_enable_encoders(64);
-wb_differential_wheels_set_encoders(0,0);
+function [ ] = part2( )
 disp('Starting now!');
 
 following = 1;
@@ -24,45 +22,17 @@ reverseMed = -2;
 %define x,y,&phi for odometry readings
 x = 0;
 y = 0;
-phi = pi; 
+phi = 3.927*pi; 
 xLastPosition = 0;
 yLastPosition = 0;
 
-%testing for encoders
-xEnc = 1;
-yEnc = 1;
-phiEnc = pi;
-
 vLeft = 1; 
 vRight = 1;
-sensorTally=0;
-
-pidControl = pid(1/100); %%just use P for now
-
-for(k=1:8)
-   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-end
-while(sensorTally<tooClose)
-    wb_differential_wheels_set_speed(vLeft, vRight);
-    [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-    deltaLeft = wb_differential_wheels_get_left_encoder/680;
-    deltaRight = wb_differential_wheels_get_right_encoder/680;
-    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
-    wb_robot_step(64); 
-    sensorTally=0;
-    for k=1:8
-       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-    end
-end
-
-xWall = x;
-yWall = y;
-phiWall=phi;
-xWallEnc = xEnc;
-yWallEnc = yEnc;
+wb_differential_wheels_set_speed(vLeft,vRight);
 
 
-for i = 1:500
+
+for i=1:100
    
   % get the values of all the range sensors    
   % get speed values from both wheels
@@ -76,10 +46,13 @@ for i = 1:500
   sensorBackLeft = wb_distance_sensor_get_value(8);
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
-  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
+  position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
-  position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
-  disp(position);
+  
+  % we take the exponential moving average of all the values
+  EMA = (alpha * all) + (1.0 - alpha) * EMA
+
+  
   
   %%check position -> if x & y position are similar, increment errorFlag
   if(xLastPosition < floor(x) + 3 && xLastPosition > floor(x)-3) && ...
@@ -138,10 +111,10 @@ for i = 1:500
 
   %nothing in front & left wall is sensed but too far away
   %getting further away from wall than desired, so go forward and left
-  elseif(sensorFrontLeft > far && sensorFrontRight > far ...
+  elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
           && sensorLeftBack < far && sensorLeftBack > noDetection ...
           && sensorLeftForward < tooClose)
-    vLeft = forwardNorm-(close-sensorLeftBack)*1/100;
+    vLeft = forwardNorm-((far-sensorLeftBack)/100);
     vRight = forwardNorm;
     controlInfo = sprintf ('Moving Left & Forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
     followFlag = following;
@@ -159,7 +132,7 @@ for i = 1:500
    %nothing in front, but left wall is too close
    %turn slightly
    elseif(sensorFrontLeft == noDetection && sensorFrontRight == noDetection ...
-              &&  sensorLeftBack > closer)
+              &&  sensorLeftBack > tooClose)
     vLeft = forwardMed;
     vRight = reverseMed;
     controlInfo = sprintf ('Spinning around! Left Wheel: %d Right Wheel: %d', vLeft, vRight);
@@ -178,13 +151,30 @@ for i = 1:500
   
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
-  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
-  deltaLeft = wb_differential_wheels_get_left_encoder/680;
-  deltaRight = wb_differential_wheels_get_right_encoder/680;
-  [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
-
+  [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, -1);
+  i=i+1;
 end
 
-%test(x,y, phi, xWall, yWall);
-testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
+botStop;
+goHome(x,y,phi);
 end
+
+%%try to get to the proper y position, then x position
+function goHome(x,y,phi) 
+    disp('Time to go Home!!');
+    position = sprintf('x: %d, y: %d, phi: %d', x, y,phi); 
+    disp(position);
+    if y<0 
+        disp('Must go up!')
+    elseif y==0
+            disp('No need to go up or down!')
+    else disp('Must go down!')
+    end
+    if x > 0
+        disp('Must go right!')
+    elseif x==0
+            disp('No need to go left or right!')
+    else disp('Must go left!')
+    end
+end
+

@@ -9,8 +9,8 @@ WorldInfo {
   runRealTime TRUE
 }
 Viewpoint {
-  orientation -0.986505 0.0702031 0.147916 1.18141
-  position -0.194513 0.402569 0.0323961
+  orientation -0.633626 -0.55116 -0.5429 2.16327
+  position 0.114535 1.13435 -0.119149
 }
 PointLight {
   ambientIntensity 0.5
@@ -217,10 +217,14 @@ Solid {
   boundingObject USE WALL_SHAPE_S
 }
 DEF KHEPERA DifferentialWheels {
-  translation -0.231741 0 -0.214452
-  rotation 0 1 0 10.5921
+  translation -0.246919 0 -0.227804
+  rotation 0 1 0 5.78285
   children [
+    Gyro {
+    }
     GPS {
+    }
+    Compass {
     }
     Camera {
     }
@@ -607,7 +611,4 @@ DEF KHEPERA DifferentialWheels {
   maxAcceleration 1e+06
   encoderNoise 0
   encoderResolution 100
-}
-Apple {
-  translation 0 0.0491782 0
 }
