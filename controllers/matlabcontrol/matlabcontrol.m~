@@ -111,19 +111,13 @@ for i = 1:500  %%arbitrary wallFollowing end point
 % ======================================================================
 
 img = wb_camera_get_image(camera);
-width = wb_camera_get_width(camera);
-height = wb_camera_get_height(camera);
-
-% get the image vals for each channel
+img 
 r = img(:,:,1);
 g = img(:,:,2);
 b = img(:,:,3);
 
-% get the green and remove white spots
 green = (g - r/2 -b/2);
-
-% get the avg value of a pixel
-sum(sum(green))/(width*height)
+sum(sum(green))/
 
  
   % get the values of all the range sensors    
