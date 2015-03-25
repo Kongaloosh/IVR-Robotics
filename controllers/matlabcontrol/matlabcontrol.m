@@ -210,7 +210,4 @@ end
 
 end
 
-%test(x,y, phi, xWall, yWall);
-testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
-    
 end
