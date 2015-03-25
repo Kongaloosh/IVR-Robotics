@@ -12,12 +12,13 @@ for i=1:N
 end
 
 % get and enable the camera
-camera = wb_robot_get_device('camera');
-wb_camera_enable(camera, TIME_STEP);
+%camera = wb_robot_get_device('camera');
+%wb_camera_enable(camera, TIME_STEP);
 
 % get and enable encoders
-wb_differential_wheels_enable_encoders(64);
-wb_differential_wheels_set_encoders(0,0);
+
+%wb_differential_wheels_enable_encoders(64);
+%wb_differential_wheels_set_encoders(0,0);
 
 % get and enable the GPS
 %gps = wb_robot_get_device('camera');
@@ -29,8 +30,8 @@ wb_differential_wheels_set_encoders(0,0);
 
 
 while wb_robot_step(TIME_STEP) ~= -1
-    
-disp('Starting now!');
+
+ disp('Starting now!');
 
 following = 1;
 notFollowing = 0;
@@ -77,15 +78,14 @@ distanceDelta = 0; %change in left back sensor readings
 pdControlFunction =0;
 
 %just starting off, head straight on until the bot gets near an object
-    for(k=1:8)
-       sensorTally = sensorTally+wb_distance_sensor_get_value(k);
-    end
-
+for(k=1:8)
+   sensorTally = sensorTally+wb_distance_sensor_get_value(k);
+end
 while(sensorTally<tooClose)
     wb_differential_wheels_set_speed(vLeft, vRight);
     [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 2.5);
-    deltaLeft = wb_differential_wheels_get_left_encoder/680;
-    deltaRight = wb_differential_wheels_get_right_encoder/680;
+    %deltaLeft = wb_differential_wheels_get_left_encoder/680;
+    %deltaRight = wb_differential_wheels_get_right_encoder/680;
     [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
     wb_robot_step(64); 
     sensorTally=0;
@@ -107,14 +107,14 @@ for i = 1:500  %%arbitrary wallFollowing end point
    
   % get the values of all the range sensors    
   % get speed values from both wheels
-  sensorLeftBack = wb_distance_sensor_get_value(ps(1));
-  sensorLeftForward = wb_distance_sensor_get_value(ps(2));
-  sensorFrontLeft = wb_distance_sensor_get_value(ps(3));
-  sensorFrontRight = wb_distance_sensor_get_value(ps(4));
-  sensorRightForward = wb_distance_sensor_get_value(ps(5));
-  sensorRightBack = wb_distance_sensor_get_value(ps(6));
-  sensorBackRight = wb_distance_sensor_get_value(ps(7));
-  sensorBackLeft = wb_distance_sensor_get_value(ps(8));
+  sensorLeftBack = wb_distance_sensor_get_value(1);
+  sensorLeftForward = wb_distance_sensor_get_value(2);
+  sensorFrontLeft = wb_distance_sensor_get_value(3);
+  sensorFrontRight = wb_distance_sensor_get_value(4);
+  sensorRightForward = wb_distance_sensor_get_value(5);
+  sensorRightBack = wb_distance_sensor_get_value(6);
+  sensorBackRight = wb_distance_sensor_get_value(7);
+  sensorBackLeft = wb_distance_sensor_get_value(8);
 
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   distanceError = desiredDistance - sensorLeftBack;
@@ -135,7 +135,7 @@ for i = 1:500  %%arbitrary wallFollowing end point
       yLastPosition = floor(y);
       errorFlag=0;
   end
-  
+ 
   %designed for wall following on the left
   %nothing in front & left side is within desired distance window
   if(sensorFrontLeft < far && sensorFrontRight < far ...
@@ -175,16 +175,22 @@ for i = 1:500  %%arbitrary wallFollowing end point
       controlInfo = sprintf ('Just keep swimming!!'); 
   end
   
+  % display control info
   disp(controlInfo);
+  
+  % send commands
   wb_differential_wheels_set_speed(vLeft, vRight);
+  
+  % calculate values from the commands
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
-  deltaLeft = wb_differential_wheels_get_left_encoder/680;
-  deltaRight = wb_differential_wheels_get_right_encoder/680;
+  
+  % caluculate values from the encoders
+  %deltaLeft = wb_differential_wheels_get_left_encoder/680;
+  %deltaRight = wb_differential_wheels_get_right_encoder/680; 
   [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,deltaLeft, deltaRight);
 
 end
 
 %test(x,y, phi, xWall, yWall);
 testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
-    
 end
