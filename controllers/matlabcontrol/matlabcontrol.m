@@ -4,6 +4,7 @@
 
 TIME_STEP = 64; % rate at which we get new drops from the sensors
 N = 8;
+TIMER = 0;
 
 % get and enable distance sensors 
 for i=1:N
@@ -58,10 +59,12 @@ xLastPosition = 0;
 yLastPosition = 0;
 
 %define x,y,&phi for encoder odometry readings
-xEnc = 1;
-yEnc = 1;
-phiEnc = 0;
-oldLeft = 0;
+xEnc = -0.231741;
+yEnc = -0.214452;
+
+phiEnc = 2*pi;
+
+oldLeft =0;
 oldRight = 0;
 newLeft =0;
 newRight=0;
@@ -88,7 +91,7 @@ while(sensorTally<tooClose)
     [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
     newLeft = wb_differential_wheels_get_left_encoder;
     newRight = wb_differential_wheels_get_right_encoder;
-    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
     oldLeft = newLeft;
     oldRight = newRight;
     wb_robot_step(64); 
@@ -132,6 +135,8 @@ while(1)  %%arbitrary wallFollowing end point
     % if there are abnormal values
     if avg_green > 10
        disp('DETECTED')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
        break
     end
     % ======================================================================
@@ -202,13 +207,30 @@ while(1)  %%arbitrary wallFollowing end point
   disp(controlInfo);
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
-    newLeft = wb_differential_wheels_get_left_encoder;
-    newRight = wb_differential_wheels_get_right_encoder;
-    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
-    oldLeft = newLeft;
-    oldRight = newRight;
-   abs(x-xStart)
-   abs(y-yStart)
-   sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
+  
+%   x = x * pi * 0.008
+%   y = y * pi * 0.008
+  
+  newLeft = wb_differential_wheels_get_left_encoder;
+  newRight = wb_differential_wheels_get_right_encoder;
+  [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+  oldLeft = newLeft;
+  oldRight = newRight;
+  
+  TIMER = TIMER +1;
+  
+  if (abs(xStart - xEnc) < 0.1 && abs(yStart - yEnc) < 0.1 && TIMER > 50)
+       disp('HOME')
+       wb_differential_wheels_set_speed(0, 0);
+       wb_robot_step(64);
+       break
+  end
+  
+  x_error_o = abs(x-xStart);
+  y_error_o = abs(y-yStart);
+  x_error_e = abs(xEnc-xStart)
+  y_error_e = abs(yEnc-yStart)
+  
+  sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
 
 end

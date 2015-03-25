@@ -9,8 +9,8 @@ WorldInfo {
   runRealTime TRUE
 }
 Viewpoint {
-  orientation -0.892025 0.250633 0.37613 1.79359
-  position -0.996946 2.39419 -0.165437
+  orientation -0.873294 0.350702 0.33818 1.33611
+  position -0.105239 0.456359 -0.0270338
 }
 PointLight {
   ambientIntensity 0.5
@@ -606,4 +606,7 @@ DEF KHEPERA DifferentialWheels {
   maxAcceleration 1e+06
   encoderNoise 0
   encoderResolution 100
+}
+Apple {
+  translation 0 0.0491782 0
 }

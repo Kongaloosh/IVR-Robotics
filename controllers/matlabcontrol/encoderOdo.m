@@ -1,6 +1,6 @@
 function [xNew,yNew,newPhi] = encoderOdo(x,y, phi, deltaLeft, deltaRight)
 
-WHEEL_CIRC = pi*.0008;
+WHEEL_CIRC = 2 * pi *.008;
 ticksPerRev = 100*pi*2;
 
 % deltaLeft = (deltaLeft/6480)*WHEEL_CIRC;
