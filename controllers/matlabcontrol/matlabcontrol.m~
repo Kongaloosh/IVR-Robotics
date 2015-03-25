@@ -21,10 +21,6 @@ camera_height = wb_camera_get_height(camera);
 wb_differential_wheels_enable_encoders(64);
 wb_differential_wheels_set_encoders(0,0);
 
-% get and enable the GPS
-%gps = wb_robot_get_device('camera');
-%wb_gps_enable(gps, TIME_STEP)
-
 % ======================================================================
 %                           CONTROL LOOP
 % ======================================================================
@@ -123,10 +119,11 @@ b = img(:,:,3);
 green = (g - r/2 -b/2);
 
 % get the avg value of a pixel
-avg_green = sum(sum(green))/(width*height);
+disp('avg green')
+avg_green = sum(sum(green))/(width*height)
 
 % if there are abnormal values
-if avg_green > 50
+if avg_green > 4
    disp('DETECTED') 
 end
  
@@ -209,7 +206,4 @@ end
 
 end
 
-%test(x,y, phi, xWall, yWall);
-testEnc(xEnc, yEnc, phiEnc, xWallEnc, yWallEnc);
-    
 end
