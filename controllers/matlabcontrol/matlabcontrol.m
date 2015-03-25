@@ -123,8 +123,13 @@ b = img(:,:,3);
 green = (g - r/2 -b/2);
 
 % get the avg value of a pixel
-sum(sum(green))/(width*height)
+disp('avg green')
+avg_green = sum(sum(green))/(width*height)
 
+% if there are abnormal values
+if avg_green > 4
+   disp('DETECTED') 
+end
  
   % get the values of all the range sensors    
   % get speed values from both wheels

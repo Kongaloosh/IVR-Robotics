@@ -111,14 +111,24 @@ for i = 1:500  %%arbitrary wallFollowing end point
 % ======================================================================
 
 img = wb_camera_get_image(camera);
-img 
+width = wb_camera_get_width(camera);
+height = wb_camera_get_height(camera);
+
+% get the image vals for each channel
 r = img(:,:,1);
 g = img(:,:,2);
 b = img(:,:,3);
 
+% get the green and remove white spots
 green = (g - r/2 -b/2);
-sum(sum(green))/
 
+% get the avg value of a pixel
+avg_green = sum(sum(green))/(width*height);
+
+% if there are abnormal values
+if avg_green > 50
+   disp('DETECTED') 
+end
  
   % get the values of all the range sensors    
   % get speed values from both wheels
