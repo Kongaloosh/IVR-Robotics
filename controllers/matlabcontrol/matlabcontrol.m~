@@ -54,7 +54,7 @@ y = -0.214452;
 xStart = x;
 yStart = y;
 
-phi = 2 * pi; 
+phi = 12.9483; 
 xLastPosition = 0;
 yLastPosition = 0;
 
@@ -62,7 +62,7 @@ yLastPosition = 0;
 xEnc = -0.231741;
 yEnc = -0.214452;
 
-phiEnc = 2*pi;
+phiEnc = 12.9483;
 
 oldLeft =0;
 oldRight = 0;
@@ -86,12 +86,16 @@ for(k=1:8)
    sensorTally = sensorTally+wb_distance_sensor_get_value(k);
 end
 
+% =======================================================================
+%                       Initial Wall-finding
+% =======================================================================
+
 while(sensorTally<tooClose)
     wb_differential_wheels_set_speed(vLeft, vRight);
     [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
     newLeft = wb_differential_wheels_get_left_encoder;
     newRight = wb_differential_wheels_get_right_encoder;
-    [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+    [xEnc,yEnc,phiEnc] = encoderOdo(xEnc,yEnc,newLeft-oldLeft, newRight-oldRight, phiEnc);
     oldLeft = newLeft;
     oldRight = newRight;
     wb_robot_step(64); 
@@ -109,6 +113,10 @@ xWallEnc = xEnc;
 yWallEnc = yEnc;
 
 lastSensorLeftBack = wb_distance_sensor_get_value(ps(1)); %%start reading for sensorLeftBack
+
+% =======================================================================
+%                           Main Control loop
+% =======================================================================
 
 while(1)  %%arbitrary wallFollowing end point
   
@@ -157,8 +165,12 @@ while(1)  %%arbitrary wallFollowing end point
   wb_robot_step(64); %%needed here or the sensors won't read correctly!
   distanceError = desiredDistance - sensorLeftBack;
   distanceDelta = lastSensorLeftBack - sensorLeftBack;
+  position = sprintf('lastSensorLeftBack: %d , sensorLeftBack: %d', lastSensorLeftBack, sensorLeftBack);
+  disp(position);
   pdControlFunction = distanceError*Kp + distanceDelta*Kd; 
-  position = sprintf('Odometry => x: %d, y: %d, phi: %d', x, y,phi); 
+  position = sprintf('distanceError: %d , distanceDelta: %d', distanceError, distanceDelta);
+  disp(position);
+  position = sprintf('dometry => x: %d, y: %d, phi: %d', x, y,phi); 
   disp(position);
   position = sprintf('Encoders => x: %d, y: %d, phi: %d', xEnc, yEnc,phiEnc); 
   disp(position);
@@ -170,8 +182,12 @@ while(1)  %%arbitrary wallFollowing end point
             && sensorLeftForward < close && sensorRightForward < close ...
             && sensorLeftBack > noDetection)
     vLeft = forwardNorm;
-    vRight = forwardNorm + pdControlFunction;
-    controlInfo = sprintf('Moving forward! Left Wheel: %d Right Wheel: %d', vLeft, vRight); 
+    vRight = forwardNorm;
+    if ~isnan(pdControlFunction)
+        vRight = vRight + pdControlFunction;
+    end
+        
+    controlInfo = sprintf('Moving forward! Left Wheel: %d Right Wheel: %d... forward norm %d and pdFunc %d', vLeft, vRight, forwardNorm, pdControlFunction); 
     followFlag = following;
     
   %nothing in front, left, and right
@@ -208,28 +224,26 @@ while(1)  %%arbitrary wallFollowing end point
   wb_differential_wheels_set_speed(vLeft, vRight);
   [x,y,phi] = odometry(vLeft, vRight,x ,y , phi, 0);
   
-%   x = x * pi * 0.008
-%   y = y * pi * 0.008
-  
   newLeft = wb_differential_wheels_get_left_encoder;
   newRight = wb_differential_wheels_get_right_encoder;
-  [xEnc,yEnc,phiEnc] = odometry2(xEnc,yEnc,phiEnc,newLeft-oldLeft, newRight-oldRight);
+  
+  [xEnc,yEnc,phiEnc] = encoderOdo(xEnc, yEnc, newLeft-oldLeft, newRight-oldRight, phiEnc);
+  
+  % end of time-step; update variables
   oldLeft = newLeft;
   oldRight = newRight;
-  
   TIMER = TIMER +1;
-  ]if (abs(xStart - xEnc) < 0.002 && abs(yStart - yEnc) < 0.002)
+  lastSensorLeftBack = sensorLeftBack;
+  
+  if (abs(xStart - xEnc) < 0.1 && abs(yStart - yEnc) < 0.1 && TIMER > 500)
        disp('HOME')
        wb_differential_wheels_set_speed(0, 0);
        wb_robot_step(64);
        break
   end
-  
-  x_error_o = abs(x-xStart);
-  y_error_o = abs(y-yStart);
+
   x_error_e = abs(xEnc-xStart)
   y_error_e = abs(yEnc-yStart)
-  
-  sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
-
+  debug = sprintf('distance translated x: %d. distance translated y: %d', abs(x-xStart), abs(y-yStart));
+  disp(debug);
 end
