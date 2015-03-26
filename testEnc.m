@@ -127,7 +127,7 @@ while (not (floor(x)>floor(xWall)-1 && floor(x)<floor(xWall)+1)) ||...
   
   newLeft = wb_differential_wheels_get_left_encoder;
   newRight = wb_differential_wheels_get_right_encoder;
-  [x,y,phi] = encoderOdo(x,y,phi,newLeft-oldLeft, newRight-oldRight);
+  [x,y,phi] = encoderOdoNew(x,y,phi,newLeft-oldLeft, newRight-oldRight);
   oldRight=newRight;
   oldLeft=newLeft;
 

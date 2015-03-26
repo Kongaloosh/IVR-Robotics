@@ -11,6 +11,6 @@ positionChange = (distanceLeft+distanceRight)/2;
 xNew = x - positionChange * sin(phi);
 yNew = y - positionChange * cos(phi);
 
-newPhi = phi+ (xNew -yNew)/.053;
+newPhi = phi+ (xNew - yNew)/.053;
 
 end
