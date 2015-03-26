@@ -219,11 +219,7 @@ DEF KHEPERA DifferentialWheels {
   translation -0.24019 0 -0.235935
   rotation 0 1 0 -287.171
   children [
-    Gyro {
-    }
-    Compass {
-    }
-    GPS {
+    Camera {
     }
     Shape {
       appearance Appearance {
